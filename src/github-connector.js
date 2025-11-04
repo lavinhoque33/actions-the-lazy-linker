@@ -56,7 +56,14 @@ class GithubConnector {
         pull_number
       });
 
-      return response?.data?.body || '';
+      const body = response?.data?.body || '';
+
+      // Remove any previously generated content between HIDDEN_GENERATIVE_TAG
+      const tagRegex =
+        /<!--action-enrich-jira-->[\s\S]*?<!--action-enrich-jira-->/g;
+      const cleanedBody = body.replace(tagRegex, '').trim();
+
+      return cleanedBody;
     } catch (error) {
       throw new Error(JSON.stringify(error, null, 4));
     }

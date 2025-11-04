@@ -39,6 +39,28 @@ describe('GithubConnector', () => {
     githubConnector = new GithubConnector();
   });
 
+  describe('getPullRequestDescription', () => {
+    it('should return empty string when PR has no description', async () => {
+      const mockResponse = {
+        data: {
+          body: null
+        }
+      };
+
+      require('@actions/github')
+        .getOctokit()
+        .rest.pulls.get.mockResolvedValue(mockResponse);
+
+      const result = await githubConnector.getPullRequestDescription(
+        'owner',
+        'repo',
+        123
+      );
+
+      expect(result).toBe('');
+    });
+  });
+
   describe('_createJiraDescription', () => {
     it('should format commit messages under FIXES title', () => {
       const mockIssue = {
