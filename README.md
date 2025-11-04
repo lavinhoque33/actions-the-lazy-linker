@@ -40,6 +40,7 @@ on:
   pull_request:
     types:
       - opened
+      - synchronize
 
 permissions:
   actions: read
@@ -80,6 +81,13 @@ jobs:
 The action replaces the PR description with Jira information and commit
 messages. If you have important information in the existing description, you
 should preserve it manually before the action runs.
+
+#### Does the workflow rerun when new commits are added?
+
+Yes! The workflow is configured to run both when a PR is opened (`opened`) and
+when new commits are pushed to the PR branch (`synchronize`). This means the
+PR description will be updated automatically whenever you add new commits,
+ensuring the FIXES section always reflects the latest commit messages.
 
 #### Do images get copied over?
 
