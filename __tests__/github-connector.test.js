@@ -65,7 +65,8 @@ describe('GithubConnector', () => {
 
       const result = githubConnector._createJiraDescription(
         mockCommits,
-        mockIssue
+        mockIssue,
+        ''
       );
 
       expect(result).toContain('**FIXES:**');
@@ -93,7 +94,8 @@ describe('GithubConnector', () => {
 
       const result = githubConnector._createJiraDescription(
         mockCommits,
-        mockIssue
+        mockIssue,
+        ''
       );
 
       expect(result).toContain('**FIXES:**');
@@ -127,7 +129,8 @@ describe('GithubConnector', () => {
 
       const result = githubConnector._createJiraDescription(
         mockCommits,
-        mockIssue
+        mockIssue,
+        ''
       );
 
       expect(result).toContain('**FIXES:**');
@@ -155,7 +158,8 @@ describe('GithubConnector', () => {
 
       const result = githubConnector._createJiraDescription(
         mockCommits,
-        mockIssue
+        mockIssue,
+        ''
       );
 
       expect(result).toContain('**FIXES:**');
@@ -196,7 +200,8 @@ describe('GithubConnector', () => {
 
       const result = githubConnector._createJiraDescription(
         mockCommits,
-        mockIssue
+        mockIssue,
+        ''
       );
 
       expect(result).toContain('**FIXES:**');
@@ -229,7 +234,11 @@ describe('GithubConnector', () => {
         }
       ];
 
-      const result = githubConnector._createJiraDescription(mockCommits, null);
+      const result = githubConnector._createJiraDescription(
+        mockCommits,
+        null,
+        ''
+      );
 
       expect(result).toContain('**FIXES:**');
       expect(result).toContain('- Fix bug in authentication');
@@ -237,6 +246,46 @@ describe('GithubConnector', () => {
       expect(result).not.toContain('PROJ-123'); // No Jira link
       expect(result).not.toContain('**Description:**'); // No Jira description
       expect(result).not.toContain('- \n'); // No empty bullet points
+    });
+
+    it('should append existing PR description below FIXES section', () => {
+      const mockIssue = {
+        key: 'PROJ-123',
+        summary: 'Test Issue',
+        description: 'Issue description',
+        issuetype: 'Bug',
+        issuetypeicon: 'https://example.com/icon.png',
+        url: 'https://example.com/browse/PROJ-123'
+      };
+
+      const mockCommits = [
+        {
+          commit: {
+            message: 'Fix bug in authentication'
+          }
+        }
+      ];
+
+      const existingDescription =
+        'This is the original PR description\n\nWith multiple lines';
+
+      const result = githubConnector._createJiraDescription(
+        mockCommits,
+        mockIssue,
+        existingDescription
+      );
+
+      expect(result).toContain('**FIXES:**');
+      expect(result).toContain('- Fix bug in authentication');
+      expect(result).toContain('PROJ-123: Test Issue');
+      expect(result).toContain('This is the original PR description');
+      expect(result).toContain('With multiple lines');
+      // Existing description should be after FIXES
+      const fixesIndex = result.indexOf('**FIXES:**');
+      const existingIndex = result.indexOf(
+        'This is the original PR description'
+      );
+      expect(existingIndex).toBeGreaterThan(fixesIndex);
     });
   });
 });

@@ -33291,12 +33291,17 @@ class GithubConnector {
     const pull_number = this.ghdata.pull_request.number;
 
     const commits = await this.getPullRequestCommits(owner, repo, pull_number);
+    const existingDescription = await this.getPullRequestDescription(
+      owner,
+      repo,
+      pull_number
+    );
 
     const updateData = {
       owner,
       repo,
       pull_number,
-      body: this._createJiraDescription(commits, issue)
+      body: this._createJiraDescription(commits, issue, existingDescription)
     };
 
     if (issue) {
@@ -33367,7 +33372,7 @@ class GithubConnector {
     return `${issue.key}: ${issue.summary}`;
   }
 
-  _createJiraDescription(commits, issue) {
+  _createJiraDescription(commits, issue, existingDescription = '') {
     const spacesAndImages = /(?:\n)( |\t|\r)+|(!.+!)/gm;
 
     // Extract commit messages
@@ -33377,11 +33382,15 @@ class GithubConnector {
       .map(message => `- ${message.trim()}`)
       .join('\n');
 
+    const existingDescSection = existingDescription.trim()
+      ? `\n\n${existingDescription}`
+      : '';
+
     if (!issue) {
       return `
         ${HIDDEN_GENERATIVE_TAG}
         \n**FIXES:**
-        \n${commitMessages}
+        \n${commitMessages}${existingDescSection}
         \n${HIDDEN_GENERATIVE_TAG}
       `.replace(spacesAndImages, '');
     }
@@ -33395,7 +33404,7 @@ class GithubConnector {
       \n**Description:**
       \n${description}
       \n**FIXES:**
-      \n${commitMessages}
+      \n${commitMessages}${existingDescSection}
       \n${HIDDEN_GENERATIVE_TAG}
     `.replace(spacesAndImages, '');
   }
