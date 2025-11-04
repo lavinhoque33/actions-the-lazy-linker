@@ -54,7 +54,7 @@ jobs:
     steps:
       - name: Print to Log
         id: print-to-log
-        uses: reachtrevor/actions-the-lazy-linker@v1.3.1
+        uses: lavinhoque33/actions-the-lazy-linker@main
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           atlassian-org-name: ${{ secrets.ATLASSIAN_ORG_NAME }}
