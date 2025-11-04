@@ -2,7 +2,7 @@ const axios = require('axios');
 
 const { getInputs } = require('./action-inputs');
 
-export class JiraConnector {
+class JiraConnector {
   constructor() {
     const { JIRA_TOKEN, ATLASSIAN_ORG_NAME, JIRA_USER_EMAIL } = getInputs(1);
 
@@ -175,3 +175,5 @@ export class JiraConnector {
     return next;
   }
 }
+
+module.exports = { JiraConnector };

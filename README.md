@@ -5,16 +5,29 @@
 
 This action searches for a Jira issue key in the branch name, fetches
 information about issue. The action will update the title of your Pull Request
-and the description of the Pull Request.
+and the description of the Pull Request with Jira information and all commit
+messages from the PR under a "FIXES" section.
 
 E.g. `feature/PRO-123` or `LLM-1874`
 
 ![image](https://github.com/user-attachments/assets/38493ab3-1afb-4c9f-85cb-9b116e13f9cb)
 
-### Motivation
+### What it does
 
-Get context about the change instantly and save you and your peers hours of
-copy-pasting and describing Pull Requests.
+The action will:
+
+1. Extract the Jira issue key from the branch name (e.g., `PRO-123` from
+   `feature/PRO-123`)
+2. Fetch the issue details from Jira
+3. Update the PR title to include the Jira issue key and summary
+4. Update the PR description with:
+   - Jira issue link and details
+   - Issue type and description
+   - **FIXES section** containing all commit messages from the PR
+
+The FIXES section automatically lists all commit messages from every commit in
+the pull request, providing reviewers with a complete overview of what changes
+were made.
 
 ## Usage
 
@@ -61,6 +74,12 @@ jobs:
 | `description-character-limit`    | -       | Limit the description from Jira to a specific character count |
 
 ## FAQ
+
+#### What happens to existing PR descriptions?
+
+The action replaces the PR description with Jira information and commit
+messages. If you have important information in the existing description, you
+should preserve it manually before the action runs.
 
 #### Do images get copied over?
 

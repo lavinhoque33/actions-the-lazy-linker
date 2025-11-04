@@ -33290,18 +33290,14 @@ class GithubConnector {
     const repo = this.ghdata.repository.name;
     const pull_number = this.ghdata.pull_request.number;
 
-    const currentDescription = await this.getPullRequestDescription(
-      owner,
-      repo,
-      pull_number
-    );
+    const commits = await this.getPullRequestCommits(owner, repo, pull_number);
 
     return await this.octokit.rest.pulls.update({
       owner,
       repo,
       pull_number,
       title: this._createTitle(issue),
-      body: this._createJiraDescription(currentDescription, issue)
+      body: this._createJiraDescription(commits, issue)
     });
   }
 
@@ -33314,6 +33310,20 @@ class GithubConnector {
       });
 
       return response?.data?.body || '';
+    } catch (error) {
+      throw new Error(JSON.stringify(error, null, 4));
+    }
+  }
+
+  async getPullRequestCommits(owner, repository, pull_number) {
+    try {
+      const response = await this.octokit.rest.pulls.listCommits({
+        owner,
+        repo: repository,
+        pull_number
+      });
+
+      return response?.data || [];
     } catch (error) {
       throw new Error(JSON.stringify(error, null, 4));
     }
@@ -33352,14 +33362,16 @@ class GithubConnector {
     return `${issue.key}: ${issue.summary}`;
   }
 
-  _createJiraDescription(currentDescription, issue) {
+  _createJiraDescription(commits, issue) {
     const { description, issuetype, issuetypeicon, key, summary, url } = issue;
-    const exists = currentDescription.indexOf(HIDDEN_GENERATIVE_TAG) !== -1;
     const spacesAndImages = /(?:\n)( |\t|\r)+|(!.+!)/gm;
 
-    if (exists) {
-      return currentDescription;
-    }
+    // Extract commit messages
+    const commitMessages = commits
+      .map(commit => commit.commit?.message || '')
+      .filter(message => message.trim().length > 0)
+      .map(message => `- ${message.trim()}`)
+      .join('\n');
 
     return `
       ${HIDDEN_GENERATIVE_TAG}
@@ -33367,8 +33379,9 @@ class GithubConnector {
       \n\n<img width="12" height="12" src="${issuetypeicon}"/> ${issuetype}
       \n**Description:**
       \n${description}
+      \n**FIXES:**
+      \n${commitMessages}
       \n${HIDDEN_GENERATIVE_TAG}
-      \n\n${currentDescription}
     `.replace(spacesAndImages, '');
   }
 }
@@ -33379,13 +33392,8 @@ module.exports = { GithubConnector };
 /***/ }),
 
 /***/ 5731:
-/***/ ((__unused_webpack_module, __webpack_exports__, __nccwpck_require__) => {
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-"use strict";
-__nccwpck_require__.r(__webpack_exports__);
-/* harmony export */ __nccwpck_require__.d(__webpack_exports__, {
-/* harmony export */   JiraConnector: () => (/* binding */ JiraConnector)
-/* harmony export */ });
 const axios = __nccwpck_require__(7269);
 
 const { getInputs } = __nccwpck_require__(8213);
@@ -33563,6 +33571,8 @@ class JiraConnector {
     return next;
   }
 }
+
+module.exports = { JiraConnector };
 
 
 /***/ }),
@@ -40341,34 +40351,6 @@ module.exports = /*#__PURE__*/JSON.parse('{"application/1d-interleaved-parityfec
 /******/ 	}
 /******/ 	
 /************************************************************************/
-/******/ 	/* webpack/runtime/define property getters */
-/******/ 	(() => {
-/******/ 		// define getter functions for harmony exports
-/******/ 		__nccwpck_require__.d = (exports, definition) => {
-/******/ 			for(var key in definition) {
-/******/ 				if(__nccwpck_require__.o(definition, key) && !__nccwpck_require__.o(exports, key)) {
-/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-/******/ 				}
-/******/ 			}
-/******/ 		};
-/******/ 	})();
-/******/ 	
-/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
-/******/ 	(() => {
-/******/ 		__nccwpck_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
-/******/ 	})();
-/******/ 	
-/******/ 	/* webpack/runtime/make namespace object */
-/******/ 	(() => {
-/******/ 		// define __esModule on exports
-/******/ 		__nccwpck_require__.r = (exports) => {
-/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-/******/ 			}
-/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
-/******/ 		};
-/******/ 	})();
-/******/ 	
 /******/ 	/* webpack/runtime/compat */
 /******/ 	
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";

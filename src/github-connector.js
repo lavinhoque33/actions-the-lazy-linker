@@ -27,18 +27,14 @@ class GithubConnector {
     const repo = this.ghdata.repository.name;
     const pull_number = this.ghdata.pull_request.number;
 
-    const currentDescription = await this.getPullRequestDescription(
-      owner,
-      repo,
-      pull_number
-    );
+    const commits = await this.getPullRequestCommits(owner, repo, pull_number);
 
     return await this.octokit.rest.pulls.update({
       owner,
       repo,
       pull_number,
       title: this._createTitle(issue),
-      body: this._createJiraDescription(currentDescription, issue)
+      body: this._createJiraDescription(commits, issue)
     });
   }
 
@@ -51,6 +47,20 @@ class GithubConnector {
       });
 
       return response?.data?.body || '';
+    } catch (error) {
+      throw new Error(JSON.stringify(error, null, 4));
+    }
+  }
+
+  async getPullRequestCommits(owner, repository, pull_number) {
+    try {
+      const response = await this.octokit.rest.pulls.listCommits({
+        owner,
+        repo: repository,
+        pull_number
+      });
+
+      return response?.data || [];
     } catch (error) {
       throw new Error(JSON.stringify(error, null, 4));
     }
@@ -89,14 +99,16 @@ class GithubConnector {
     return `${issue.key}: ${issue.summary}`;
   }
 
-  _createJiraDescription(currentDescription, issue) {
+  _createJiraDescription(commits, issue) {
     const { description, issuetype, issuetypeicon, key, summary, url } = issue;
-    const exists = currentDescription.indexOf(HIDDEN_GENERATIVE_TAG) !== -1;
     const spacesAndImages = /(?:\n)( |\t|\r)+|(!.+!)/gm;
 
-    if (exists) {
-      return currentDescription;
-    }
+    // Extract commit messages
+    const commitMessages = commits
+      .map(commit => commit.commit?.message || '')
+      .filter(message => message.trim().length > 0)
+      .map(message => `- ${message.trim()}`)
+      .join('\n');
 
     return `
       ${HIDDEN_GENERATIVE_TAG}
@@ -104,8 +116,9 @@ class GithubConnector {
       \n\n<img width="12" height="12" src="${issuetypeicon}"/> ${issuetype}
       \n**Description:**
       \n${description}
+      \n**FIXES:**
+      \n${commitMessages}
       \n${HIDDEN_GENERATIVE_TAG}
-      \n\n${currentDescription}
     `.replace(spacesAndImages, '');
   }
 }
