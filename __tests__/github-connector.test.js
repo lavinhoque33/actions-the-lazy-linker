@@ -209,5 +209,34 @@ describe('GithubConnector', () => {
       expect(result).toContain('- Update: Use emojis 🚀 and symbols ±×÷');
       expect(result).toContain('PROJ-999: Special Characters Test');
     });
+
+    it('should format only FIXES section when no Jira issue is provided', () => {
+      const mockCommits = [
+        {
+          commit: {
+            message: 'Fix bug in authentication\n\nThis fixes the login issue'
+          }
+        },
+        {
+          commit: {
+            message: 'Add unit tests'
+          }
+        },
+        {
+          commit: {
+            message: ''
+          }
+        }
+      ];
+
+      const result = githubConnector._createJiraDescription(mockCommits, null);
+
+      expect(result).toContain('**FIXES:**');
+      expect(result).toContain('- Fix bug in authentication');
+      expect(result).toContain('- Add unit tests');
+      expect(result).not.toContain('PROJ-123'); // No Jira link
+      expect(result).not.toContain('**Description:**'); // No Jira description
+      expect(result).not.toContain('- \n'); // No empty bullet points
+    });
   });
 });

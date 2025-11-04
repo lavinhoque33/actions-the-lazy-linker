@@ -33292,13 +33292,18 @@ class GithubConnector {
 
     const commits = await this.getPullRequestCommits(owner, repo, pull_number);
 
-    return await this.octokit.rest.pulls.update({
+    const updateData = {
       owner,
       repo,
       pull_number,
-      title: this._createTitle(issue),
       body: this._createJiraDescription(commits, issue)
-    });
+    };
+
+    if (issue) {
+      updateData.title = this._createTitle(issue);
+    }
+
+    return await this.octokit.rest.pulls.update(updateData);
   }
 
   async getPullRequestDescription(owner, repository, pull_number) {
@@ -33363,7 +33368,6 @@ class GithubConnector {
   }
 
   _createJiraDescription(commits, issue) {
-    const { description, issuetype, issuetypeicon, key, summary, url } = issue;
     const spacesAndImages = /(?:\n)( |\t|\r)+|(!.+!)/gm;
 
     // Extract commit messages
@@ -33372,6 +33376,17 @@ class GithubConnector {
       .filter(message => message.trim().length > 0)
       .map(message => `- ${message.trim()}`)
       .join('\n');
+
+    if (!issue) {
+      return `
+        ${HIDDEN_GENERATIVE_TAG}
+        \n**FIXES:**
+        \n${commitMessages}
+        \n${HIDDEN_GENERATIVE_TAG}
+      `.replace(spacesAndImages, '');
+    }
+
+    const { description, issuetype, issuetypeicon, key, summary, url } = issue;
 
     return `
       ${HIDDEN_GENERATIVE_TAG}
@@ -33607,23 +33622,32 @@ async function run() {
     const branch = githubConnector.headBranch;
     const jiraKeyMatch = branch.match(/[A-z]+-\d+/gi); // IVN-1234
 
-    if (!jiraKeyMatch) {
-      console.log('No Jira issue key found in the branch name.');
-      setOutputs(null, null);
-      process.exit(0);
+    let issue = null;
+
+    if (jiraKeyMatch) {
+      const jiraIssueKey = jiraKeyMatch[0].toUpperCase();
+
+      const jiraConnected = await jiraConnector.ping();
+
+      if (jiraConnected) {
+        try {
+          issue = await jiraConnector.getIssue(jiraIssueKey);
+        } catch (error) {
+          console.log(
+            'Failed to fetch Jira issue, proceeding with commits only.'
+          );
+          issue = null;
+        }
+      } else {
+        console.log('Failed to connect to Jira, proceeding with commits only.');
+        issue = null;
+      }
+    } else {
+      console.log(
+        'No Jira issue key found in the branch name, proceeding with commits only.'
+      );
     }
 
-    const jiraIssueKey = jiraKeyMatch[0].toUpperCase();
-
-    const jiraConnected = await jiraConnector.ping();
-
-    if (!jiraConnected) {
-      console.log('Failed to connect to Jira.');
-      setOutputs(null, null);
-      process.exit(0);
-    }
-
-    const issue = await jiraConnector.getIssue(jiraIssueKey);
     await githubConnector.updatePrDetails(issue);
 
     setOutputs(jiraIssueKey);

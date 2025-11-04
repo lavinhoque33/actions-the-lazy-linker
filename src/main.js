@@ -25,23 +25,32 @@ async function run() {
     const branch = githubConnector.headBranch;
     const jiraKeyMatch = branch.match(/[A-z]+-\d+/gi); // IVN-1234
 
-    if (!jiraKeyMatch) {
-      console.log('No Jira issue key found in the branch name.');
-      setOutputs(null, null);
-      process.exit(0);
+    let issue = null;
+
+    if (jiraKeyMatch) {
+      const jiraIssueKey = jiraKeyMatch[0].toUpperCase();
+
+      const jiraConnected = await jiraConnector.ping();
+
+      if (jiraConnected) {
+        try {
+          issue = await jiraConnector.getIssue(jiraIssueKey);
+        } catch (error) {
+          console.log(
+            'Failed to fetch Jira issue, proceeding with commits only.'
+          );
+          issue = null;
+        }
+      } else {
+        console.log('Failed to connect to Jira, proceeding with commits only.');
+        issue = null;
+      }
+    } else {
+      console.log(
+        'No Jira issue key found in the branch name, proceeding with commits only.'
+      );
     }
 
-    const jiraIssueKey = jiraKeyMatch[0].toUpperCase();
-
-    const jiraConnected = await jiraConnector.ping();
-
-    if (!jiraConnected) {
-      console.log('Failed to connect to Jira.');
-      setOutputs(null, null);
-      process.exit(0);
-    }
-
-    const issue = await jiraConnector.getIssue(jiraIssueKey);
     await githubConnector.updatePrDetails(issue);
 
     setOutputs(jiraIssueKey);

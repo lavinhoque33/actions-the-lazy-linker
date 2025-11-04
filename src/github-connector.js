@@ -29,13 +29,18 @@ class GithubConnector {
 
     const commits = await this.getPullRequestCommits(owner, repo, pull_number);
 
-    return await this.octokit.rest.pulls.update({
+    const updateData = {
       owner,
       repo,
       pull_number,
-      title: this._createTitle(issue),
       body: this._createJiraDescription(commits, issue)
-    });
+    };
+
+    if (issue) {
+      updateData.title = this._createTitle(issue);
+    }
+
+    return await this.octokit.rest.pulls.update(updateData);
   }
 
   async getPullRequestDescription(owner, repository, pull_number) {
@@ -100,7 +105,6 @@ class GithubConnector {
   }
 
   _createJiraDescription(commits, issue) {
-    const { description, issuetype, issuetypeicon, key, summary, url } = issue;
     const spacesAndImages = /(?:\n)( |\t|\r)+|(!.+!)/gm;
 
     // Extract commit messages
@@ -109,6 +113,17 @@ class GithubConnector {
       .filter(message => message.trim().length > 0)
       .map(message => `- ${message.trim()}`)
       .join('\n');
+
+    if (!issue) {
+      return `
+        ${HIDDEN_GENERATIVE_TAG}
+        \n**FIXES:**
+        \n${commitMessages}
+        \n${HIDDEN_GENERATIVE_TAG}
+      `.replace(spacesAndImages, '');
+    }
+
+    const { description, issuetype, issuetypeicon, key, summary, url } = issue;
 
     return `
       ${HIDDEN_GENERATIVE_TAG}
