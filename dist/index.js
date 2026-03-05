@@ -33639,9 +33639,10 @@ async function run() {
     const jiraKeyMatch = branch.match(/[A-z]+-\d+/gi); // IVN-1234
 
     let issue = null;
+    let jiraIssueKey = null;
 
     if (jiraKeyMatch) {
-      const jiraIssueKey = jiraKeyMatch[0].toUpperCase();
+      jiraIssueKey = jiraKeyMatch[0].toUpperCase();
 
       const jiraConnected = await jiraConnector.ping();
 
